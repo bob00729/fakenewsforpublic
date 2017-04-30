@@ -1,4 +1,0 @@
-name: "my-website"
-output_dir: "_site"
-include: ["Team_L_Final_Project.html"]
-exclude: ["Team_L_Final_Project.Rmd"]

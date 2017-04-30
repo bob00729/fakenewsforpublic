@@ -484,11 +484,7 @@ Finally, we provide an additional map of distribution of confidence in the press
 
 #### World Values Survey 2010-2014
 
-```{r WVS Spatial, echo=FALSE, message=FALSE, warning=FALSE}
-if (!require("plyr")) {
- install.packages("plyr", dependencies = TRUE)
-  library(plyr)}
-
+```{r WVS Spatial, results = 'hide', echo=FALSE, message=FALSE, warning=FALSE}
 # Import and format data
 load("Data/WV6_Data_R_v_2016_01_01.rdata")
 
@@ -760,7 +756,12 @@ edu4$Country <- rownames(edu4)
 Countrynames <- unique(WV6$Country)
 Countrynames <- data.frame(Countrynames)
 Countrynames$Country <-rownames(Countrynames)
+
 # Countrynames
+
+if (!require("plyr")) {
+ install.packages("plyr", dependencies = TRUE)
+  library(plyr)}
 
 Edu <- join_all(list(edu1, edu2, edu3, edu4, Countrynames), by = 'Country', type = 'full')
 Edu$Country <- Edu$Countrynames
@@ -790,7 +791,9 @@ unzip(f, exdir=tempdir())
 world <- readOGR(tempdir(), 'ne_50m_admin_0_countries', encoding='UTF-8')
 
 world_dat <- merge(world, mean_dt, by.x="name_long", by.y="Country")
+```
 
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
 # Plot leaflet
 leaflet(world_dat) %>% 
   setView(lat=10, lng=0 , zoom=2) %>% 
@@ -819,3 +822,82 @@ leaflet(world_dat) %>%
     4 = None at all", opacity = 0.5)
 ```
 
+## PROJECT BOOK
+
+__Overview and Motivation:__
+
+We intended to compare the individual confidence level in the press in various countries by
+conducting analysis in static, geographic, and textual dimensions. Also, we were planning to
+investigate possible explanatory variables that may have correlations with confidence level in the
+press and visualize the findings.
+
+We were inspired by the newly elected president and his uproar about the unfair media and wanted to see how others felt about it.
+
+__Related Work:__
+
+Similar to the example project on the American diet and the obesity epidemic, we did not have a hypothesis going into this project, or solid conclusion coming out. We wanted to draw correlations and indicate possible explanations. In the end, the factors comprising trust levels are too numerous and complicated and a single conclusion cannot be drawn in the course of one semester project, but we think we found and displayed very interesting points to be further explored in the future.
+ 
+__Questions:__
+
+First, we concentrated on seeing whether there are spatial and temporal patterns of confidence in the media in the world. However, our datasets were lacking in completeness, so we turned towards concentrating on U.S. alone and adding visualizations about the world as interesting support and counterarguments to our U.S. data.
+
+After ensuring the patterns exist, we turned to exploring possible correlations, focusing on correlations with other confidence variables available to us and demographics. We displayed the final results as interesting patterns in our final markdown.
+
+__Data: __ 
+
+For this project, we used the following datasets:
+1.     General Social Survey (1972-2016)
+2.     Carnegie Middle East Governance and Islam Dataset (1988-2014)
+3.     National Politics Study (2008)
+4.   World Values Survey (2010-2014)
+5.     New York Times Articles (obtained from LexisNexis Academic portal)
+ 
+We used General Social Survey 1972-2016 for the main chunk of our analysis to create static and interactive charts of correlations between Confidence in the Press variable and other variables in the dataset. We also used it for visualizing geographic differences in Confidence in the Press variable in the United States in 2016.
+ 
+Another dataset used was Carnegie Middle East Governance and Islam Dataset, 1988-2014, which we used in order to compare the temporal patterns we found in the GSS data to the Middle East and to also project a map of trust in the media levels in the Middle East. However, the map based on this data yielded us few valuable insights, so we excluded it from the final version.
+ 
+We also used the National Politics Study 2008 in this project, which includes topics on important demographic, political, racial and ethnic issues related to vote choice and political behavior. Throughout this project, I intend to compare the trust levels in media in America by conducting analysis in static, geographic and interactive dimensions to find out whether the trust tendency changes upon respondents’ demographic characteristics or geographic characteristics.
+ 
+As we are looking at how confidence in press differs in regions, we also used the World Values Survey (2010-2014). This dataset was used to visualize the world data with confidence in media levels and explore different relationships including education and age layers. In the final version, we again excluded many of the visualizations created with this data as they were not reliable or not informative due to missingness.
+ 
+For the text analysis, we chose to use the New York Times newspaper articles from the years where we observed sharp decrease in confidence in press in the US. The task is to compare the main subjects in these years. Since the metadata of subjects is only available for years in the 2000s, our final choice of articles cover 2008, 2012, and 2016. Due to the limitation of our data source, the upper limit of the number of articles per month is 1,000.
+
+__Exploratory Data Analysis:__ 
+
+We started the project intending to project world trends using the WVS dataset. However, there were too many countries missing and inconsistencies in our visualizations. Then, we used the Middle East data and looked into Eurobarometer 76.3 and NPS 2008 data, as the professor did not reply to us about suggestions of what data to use. We wasted a lot of time with these datasets and encountered problems similar to the WVS.
+
+Finally, we concentrated on the U.S. trends in the GSS and NPS 2008 datasets, starting with temporal trends, when we noticed that trust drops on election years. We wanted to see if there are any clues about why that happens through text analysis of New York Times articles and gained partial insight. However, text analysis yields little usable information to work on, so we moved on to demographics.
+
+We ran several regressions to identify patterns and correlations, and used the resulting statistically-significant variables to produce static ggplot graphs of demographic distribution of confidence in the press in GSS 2016 data. Those are likely the most interesting and the simplest graphs we made.
+
+Having identified temporal and demographic patterns, we turned to GIS. We created several leaflet layered maps and used them to explore patterns, keeping only the layers that showed correlations. Since our GSS demographic distribution was a bit biased, we added an NPS 2008 map that was better suited to figuring out spatial patterns.
+
+Finally, we added WVS map for future pondering, since we think it would be interesting to expand this project worldwide, although we do not have consistent data to do so.
+
+__Design Evolution:__ 
+
+Besides the issues described already, we also had problems with leaflet color schemes, especially with varying variables across the layers. We fixed it by applying a single legend of low-medium-high levels to all layers that would be equally descriptive for each variable. We had to do quite a bit of manipulation to make the colors and the highlights look attractive.
+
+After a lot of testing, we also centered on using tufte theme for our ggplot graphs and toner tiles for the leaflets to make them appear more “press-like”, as if taken from a newspaper.
+
+We also had to do a lot of data manipulation (probably 80% of our time) behind the scenes due to using many different datasets and lack of input from the instructors on which datasets we should focus on early on (I believe the Piazza questions we asked were marked as read, so we received instructor input much later in our process, after we’ve already gone through a lot of our analysis of the data that we ended up discarding based on comments). Although we had to discard a lot of visualizations, we rebounded with analysis of GSS and NPS 2008 data quickly.
+
+__Implementation:__ 
+
+Interactive plot.ly graphs were added for clarity, since they list the individual mean confidence scores for the variables in questions for the user to gain a bit more insight. We believe this promotes transparency as some differences in the scores are very small and the interactive layer lets the user decide on whether they are meaningful.
+
+For the leaflet maps, the different layers provide a comparison of spatial trends.
+
+There are more explanations of each graph in our final markdown.
+
+__Evaluation:__ 
+
+Our questions were exploratory in nature and everything we learned we wrote about in the final markdown for the user to see. As a short summary, there is a decreasing temporal trend for confidence in the media in the United States (although in the Middle East, it is an increasing trend instead and if we had better data, we would look into this discrepancy). There is also demographic variations with older people having more confidence in the media, white people having little confidence in the media, and Republicans having less confidence in the media than Democrats. Spatially, the Northeast has more confidence in the media than the South, traditionally Democratic and Republican strongholds, respectively. As far as the world is concerned, better data is needed, but educational attainment seems to correlate with confidence in the press. The Western world seems to have more confidence in its media as well.
+
+__Next Steps:__
+
+Time and data constraints led us to structure this project as an exploratory project. If we had instructor input earlier, we might have focused more on particular aspects of our findings, but with the limited time, we think of this as the first look into the world of trust in the media, an appetizer of things to come. Our project’s main finding seems to be the correlation of politics and media, as in almost all of our data, confidence in political institutions was correlated with confidence in the media institutions.
+
+If given more time and better data, we would also expand this project worldwide to look into why the Middle East’s pattern of trust in the media is reversely correlated to that of U.S. and we would also try to project spatial patterns between demographics and confidence in the media, which proved very challenging due to limitation of the data.
+
+See our individual codes in [our private Github](https://github.com/Columbia-University-QMSS/final-project-team-8) for initital exploratory analysis on the discarded data.
