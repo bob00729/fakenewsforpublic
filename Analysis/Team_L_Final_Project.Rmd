@@ -1,0 +1,821 @@
+---
+title: "Team L Final Project: Fake News"
+author: "Svyatoslav Andriyishen, Hanah Chang, Bob Chen, Stephanie Park"
+date: "April 30, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Packages, message=FALSE, warning=FALSE, include=FALSE, results='hide'}
+if (!require("dplyr")) {
+ install.packages("dplyr", dependencies = TRUE)
+  library(dplyr)}
+if (!require("tidyr")) {
+ install.packages("tidyr", dependencies = TRUE)
+  library(tidyr)}
+if (!require("ggplot2")) {
+ install.packages("ggplot2", dependencies = TRUE)
+  library(ggplot2)}
+if (!require("ggthemes")) {
+ install.packages("ggthemes", dependencies = TRUE)
+  library(ggthemes)}
+if (!require("tidytext")) {
+ install.packages("tidytext", dependencies = TRUE)
+  library(tidytext)}
+if (!require("quanteda")) {
+ install.packages("quanteda", dependencies = TRUE)
+  library(quanteda)}
+if (!require("tm")) {
+ install.packages("tm", dependencies = TRUE)
+  library(tm)}
+if (!require("stringr")) {
+ install.packages("stringr", dependencies = TRUE)
+  library(stringr)}
+if (!require("qdap")) {
+ install.packages("qdap", dependencies = TRUE)
+  library(qdap)}
+if (!require("qdapDictionaries")) {
+ install.packages("qdapDictionaries", dependencies = TRUE)
+  library(qdapDictionaries)}
+if (!require("plotly")) {
+ install.packages("plotly", dependencies = TRUE)
+  library(plotly)}
+if (!require("scales")) {
+ install.packages("scales", dependencies = TRUE)
+  library(scales)}
+if (!require("DT")) {
+ install.packages("DT", dependencies = TRUE)
+  library(DT)}
+if (!require("leaflet")) {
+ install.packages("leaflet", dependencies = TRUE)
+  library(leaflet)}
+if (!require("rgdal")) {
+ install.packages("rgdal", dependencies = TRUE)
+  library(rgdal)}
+if (!require("tigris")) {
+ install.packages("tigris", dependencies = TRUE)
+  library(tigris)}
+if (!require("sp")) {
+ install.packages("sp", dependencies = TRUE)
+  library(sp)}
+if (!require("wordcloud")) {
+ install.packages("wordcloud", dependencies = TRUE)
+  library(wordcloud)}
+```
+
+
+## Intro
+
+On its March 2017 issue, Time Magazine's headline read "Is Truth Dead?" As information is becoming increasingly accessible, the question of what information we should trust is becoming similarly as relevant. Trust and confidence in the media is dropping. And in this project, we endeavor to highlight the patterns of trust in the media decline and factors correlated with them through time, space, and demographics.
+
+
+## Data
+
+For this project, we used the following datasets:
+
+1. __General Social Survey (1972-2016)__
+We used General Social Survey 1972-2016 for the main chunk of our analysis to create static and interactive charts of correlations between Confidence in the Press variable and other variables in the dataset. We also used it for visualizing geographic differences in Confidence in the Press variable in the United States in 2016.
+
+2. __Carnegie Middle East Governance and Islam Dataset (1988-2014)__
+Another dataset used was Carnegie Middle East Governance and Islam Dataset, 1988-2014, which we used in order to compare the temporal patterns we found in the GSS data to the Middle East.
+
+3. __National Politics Study (2008)__
+We also used the National Politics Study 2008 in this project, which includes topics on important demographic, political, racial and ethnic issues related to vote choice and political behavior. Throughout this project, I intend to compare the trust levels in media in America by conducting analysis in static, geographic and interactive dimensions to find out whether the trust tendency changes upon respondents' demographic characteristics or geographic characteristics.
+
+4. __World Values Survey (2010-2014)__
+As we are looking at how confidence in press differs in regions, we also used the World Values Survey (2010-2014). This dataset was used to visualize the world data with confidence in the press variable and explore its relationship with educational levels.
+
+5. __New York Times Articles (obtained from LexisNexis Academic portal)__
+For the text analysis, we chose to use the New York Times newspaper articles from the years where we observed sharp decrease in confidence in press in the US. The task is to compare the main subjects in these years. Since the metadata of subjects is only available for years in the 2000s, our final choice of articles cover 2008, 2012, and 2016. Due to the limitation of our data source, the upper limit of the number of articles per month is 1,000.
+
+
+## Time
+
+```{r Yearly Trends in GSS 1972-2016 data, echo=FALSE, message=FALSE, warning=FALSE}
+# Import data
+load("Data/gss_sub.rda")
+gss_sub$conpress <- 3 - gss_sub$conpress
+gss_sub$trust <- 3 - gss_sub$trust
+gss_sub$contv <- 3 - gss_sub$contv
+gss_sub$confinan <- 3 - gss_sub$confinan
+gss_sub$conbus <- 3 - gss_sub$conbus
+gss_sub$conclerg <- 3 - gss_sub$conclerg
+gss_sub$coneduc <- 3 - gss_sub$coneduc
+gss_sub$confed <- 3 - gss_sub$confed
+gss_sub$conmedic <- 3 - gss_sub$conmedic
+gss_sub$conjudge <- 3 - gss_sub$conjudge
+gss_sub$consci <- 3 - gss_sub$consci
+gss_sub$conlegis <- 3 - gss_sub$conlegis
+gss_sub$conarmy <- 3 - gss_sub$conarmy
+gss_sub$conlabor <- 3 - gss_sub$conlabor
+
+gss_ly <- gss_sub %>% group_by(year) %>%
+  summarize(General = mean(trust, na.rm = TRUE),
+            Press = mean(conpress, na.rm = TRUE), 
+            TV = mean(contv, na.rm = TRUE),
+            Finance = mean(confinan, na.rm = TRUE),
+            Business = mean(conbus, na.rm = TRUE),
+            Religion = mean(conclerg, na.rm = TRUE),
+            Education = mean(coneduc, na.rm = TRUE),
+            Exec_fed_gov = mean(confed, na.rm = TRUE),
+            Unions = mean(conlabor, na.rm = TRUE),
+            Medicine = mean(conmedic, na.rm = TRUE),
+            Supreme_court = mean(conjudge, na.rm = TRUE),
+            Science_comm = mean(consci, na.rm = TRUE),
+            Congress = mean(conlegis, na.rm = TRUE),
+            Military = mean(conarmy, na.rm = TRUE))
+
+if (!require("plotly")) {
+ install.packages("plotly", dependencies = TRUE)
+  library(plotly)}
+if (!require("RColorBrewer")) {
+ install.packages("RColorBrewer", dependencies = TRUE)
+  library(RColorBrewer)}
+
+
+plot_ly(gss_ly, x = ~year, y = ~General, type = "scatter", mode = "lines+markers", 
+        connectgaps = TRUE, name = "General Trust Level") %>%
+  add_trace(y = ~Press, name = "Press") %>%
+  add_trace(y = ~TV, name = "TV") %>%
+  add_trace(y = ~Finance, name = "Finance") %>%
+  add_trace(y = ~Business, name = "Business") %>%
+  add_trace(y = ~Religion, name = "Religion") %>%
+  add_trace(y = ~Education, name = "Education") %>%
+  add_trace(y = ~Medicine, name = "Medicine") %>%
+  add_trace(y = ~Science_comm, name = "Scientific Community") %>%
+  add_trace(y = ~Unions, name = "Organized Labor") %>%
+  add_trace(y = ~Exec_fed_gov, name = "Executive Federal Government") %>%
+  add_trace(y = ~Supreme_court, name = "Supreme Court") %>%
+  add_trace(y = ~Congress, name = "Congress") %>%
+  add_trace(y = ~Military, name = "Military") %>%
+  layout(title = "Yearly Trends in GSS Confidence Variables",
+         yaxis = list(title = "Confidence Level"),
+         xaxis = list(title = "Year"))
+```
+
+There is a clear and decreasing trend in confidence in the press over the period of the above chart. Also in the above chart, and confirmed through regression analysis (see Appendix at the bottom of the page), confidence in the press levels appear to be correlated with confidence in TV, Congress, Supreme Court, and reversely correlated with confidence in the military, which means that confidence in the press is often correlated with confidence in the governmental institutions and leads us to believe that politics may play a role in individuals trusting the media. Confidence in the press is also positively correlated with confidence in the organized labor organizations until mid-1990s, after which the trends diverge in the opposite directions. Perhaps the most interesting finding here is that while the general trust level of individuals is decreasing at a slow and mostly consistent pace, confidence in the press (and in TV) is decreasing sharply.
+
+It is interesting to note that while confidence in the media is decreasing in the United States, according to GSS data, temporal trends elsewhere might not correspond. In the graph of trust in the media 2000-2010 in the Middle East below, the trend in these recent years is actual positive towards trusting the media.
+
+```{r Yearly Trends in the Middle East, echo=FALSE, message=FALSE, warning=FALSE}
+# Import data
+load("Data/MidEastGov1988-2014.rda")
+mideast <- da32302.0001
+
+# countries # check the reconding
+mideast$countries <- gsub("\\s*\\([^\\)]+\\) ", "", as.character(mideast$MCOUNTRY))
+# check for correct coding
+# unique(mideast$countries)
+
+mideast_ctyr <- mideast %>% group_by(MYEAR, countries) %>%
+  summarise(Press = mean(as.numeric(M301L), na.rm = TRUE), 
+            TV = mean(as.numeric(M301H), na.rm = TRUE))
+
+
+mideast_ly <- mideast %>% group_by(MYEAR) %>%
+  summarise(Press = mean(as.numeric(M301L), na.rm = TRUE), 
+            TV = mean(as.numeric(M301H), na.rm = TRUE))
+cntr <- aggregate(countries ~ MYEAR, mideast_ctyr, paste)
+mideast_ly <- mideast_ly %>%
+  left_join(cntr, by = c("MYEAR" = "MYEAR"))
+
+plot_ly(mideast_ly, x = ~MYEAR, y = ~Press, type = "scatter", mode = "lines+markers", 
+        connectgaps = TRUE, name = "Press") %>%
+  add_trace(y = ~TV, name = "TV") %>%
+  layout(title = "Yearly Trends in Middle Eastern Trust in Media",
+         yaxis = list(autorange = "reversed"),
+         xaxis = list(title = "Year")) # text = ~paste('Countries: ', unlist(countries))
+```
+
+
+## Text Analysis
+
+The last three sharp drops in the confidence level in the press occurred during 2008, 2012, and 2016 (all election years). We were interested in the kinds of topics that were discussed during these years in the media. Below is a world cloud of the most common subjects of printed New York Times articles for the three years. Due to the limitation of the data, we were only able to use the articles published since the 2000s.
+
+```{r NYT, echo = FALSE, results = 'hide', message = FALSE, warning = FALSE}
+# Import and clean subjects
+
+nyt2016 <- read.csv("Data/nyt2016.csv")
+
+sub2016 <- select(nyt2016, SUBJECT)
+sub2016 <- gsub( " *\\(.*?\\) *", "", sub2016$SUBJECT) # Remove parentheses
+sub2016 <- strsplit(sub2016, ";") # Split by ';' into a list
+sub2016 <- lapply(sub2016, FUN = trimws) # Remove whitespace
+sub2016list <- unique(unlist(sub2016))
+
+nyt2012 <- read.csv("Data/nyt2012.csv")
+
+sub2012 <- select(nyt2012, SUBJECT)
+sub2012 <- gsub( " *\\(.*?\\) *", "", sub2012$SUBJECT) # Remove parentheses
+sub2012 <- strsplit(sub2012, ";") # Split by ';' into a list
+sub2012 <- lapply(sub2012, FUN = trimws) # Remove whitespace
+sub2012list <- unique(unlist(sub2012))
+
+nyt2008 <- read.csv("Data/nyt2008.csv")
+
+sub2008 <- select(nyt2008, SUBJECT)
+sub2008 <- gsub( " *\\(.*?\\) *", "", sub2008$SUBJECT) # Remove parentheses
+sub2008 <- strsplit(sub2008, ";") # Split by ';' into a list
+sub2008 <- lapply(sub2008, FUN = trimws) # Remove whitespace
+sub2008list <- unique(unlist(sub2008))
+
+s16 <- paste(sub2016list, collapse = " ")
+s12 <- paste(sub2012list, collapse = " ")
+s08 <- paste(sub2008list, collapse = " ")
+
+# Combine and convert data for plotting
+all <- c(s16, s12, s08)
+corpus2 <- Corpus(VectorSource(all)) # create corpus
+cloudtdm <- TermDocumentMatrix(corpus2) # create term document matrix
+cloudtdm <- as.matrix(cloudtdm) # convert as matrix
+colnames(cloudtdm) <- c("2016", "2012", "2008") # add column names
+
+# Plot the word cloud
+set.seed(999)
+
+comparison.cloud(cloudtdm, random.order=FALSE,
+colors = brewer.pal(3, "Set1"),
+title.size = 1.5, max.words = 200)
+```
+
+In 2008, "markets" and other business topics dominate the written word landscape. 2008 was the year of the mortgage market collapse in the United States, so it is not surprising to find "market" the keyword of that year. For 2012 and 2016, the picture isn't as clear, although articles in 2012 seem to be focused on industrial issues, and those in 2016 seem to be concentrated around social and election issues.
+
+
+## Demographics
+
+After exploring the temporal side of the issue, we turned towards figuring out confidence level in the press divided by demographic variables. Below are a set of static graphs exploring these relationships. All of the variables in the graphs were chosen by running an OLM regression for GSS 2016 data and were found to be statistically significant in their correlations with confidence in the press. On the political side of things, Republicans seem to have much less confidence in the media than the Democrats, perhaps because there are fewer media outlets catering to them. Younger people tend to distrust the press more than older people. Whites have lower confidence in the press than Blacks, who, in turn, have lower confidence in the press than all other races. And foreign-born individuals tend to have more confidence in the media than those born in U.S.
+
+```{r Regressions, message=FALSE, warning=FALSE, include=FALSE, results='hide'}
+# simple regressions to check for correlations
+
+# regress over entire GSS dataset
+summary(lm(conpress ~ ., data = gss_sub))
+
+#filter out 2016
+gss_16 <- filter(gss_sub, year == 2016)
+
+# pick variables for 2016-only regression because of NA issues
+# some variables had all NA for each response to conpress, so the entire data was omitted
+# and we had to hand pick variables
+# also removed contv due to covariance with conpress
+summary(lm(conpress ~ trust + confinan + coneduc + conlabor +
+             conmedic + conjudge + consci + conlegis + conarmy +
+             partyid + born + age + marital + adults + degree + race +
+             relig, data = gss_16))
+
+partynames <- c("Strong Democrat", "Not Strong Democrat", "Independent near Democrat", 
+                        "Independent", "Independent near Republican", "Not Strong Republican", 
+                        "Strong Republican", "Other")
+gss_16$partyid <- as.factor(gss_16$partyid)
+levels(gss_16$partyid) <- partynames
+gss_16 <- within(gss_16, partyid <- relevel(partyid, ref = "Other"))
+summary(lm(conpress ~ partyid, data = gss_16))
+```
+
+```{r GSS, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
+# Confidence in Press level by Political Affiliation in 2016
+ggplot(gss_16[!is.na(gss_16$partyid),], aes(x = as.factor(partyid), fill = as.factor(partyid))) +
+  stat_summary(aes(y = as.numeric(conpress)), fun.y = "mean", geom = "bar") + 
+  coord_flip() +labs(title = "Confidence in Press Levels by Political Affiliation",
+       y = "Confidence in the Press", x = "") +
+  scale_y_continuous(limits = c(0, 2), breaks = 0:2, labels = c("Hardly any", "Only some", "A great deal")) +
+  ggthemes::theme_tufte() + theme(legend.position = "none", axis.text.x = element_text(angle=90))
+
+# Import data
+gss_sub2 <- read.csv("Data/gss_sub.csv")
+gss_sub2$conpress <- 3 - gss_sub2$conpress
+yr16 <- subset(gss_sub2, gss_sub2$year == 2016)
+
+# Confidence in Media by age group
+age16 <- na.omit(yr16[,c("age_group","conpress")])
+
+age16 %>%
+  dplyr::group_by(age_group)%>%
+  dplyr::summarize(mean_scores = mean(conpress))%>%
+  ggplot(aes(x = age_group, y = mean_scores, fill = age_group,alpha=0.3)) +
+  geom_bar(stat = "identity") + geom_text(aes(label=round(mean_scores,2), size = 10, fontface = "bold", vjust=4))+ labs(x = "Age Group", y = "Confidence Level")+ggtitle("Confidence in Media by Age Group") + theme(plot.title=element_text(size=rel(1.1), lineheight=.9,face="italic",colour="black"))+ theme_tufte()+theme(legend.position="none")+ scale_y_continuous(limit = c(0,2), breaks = c(0,1,2), labels = c("Hardly Any", "Only some", "A great deal"))
+
+# Confidence in Media by race
+race16 <- na.omit(yr16[,c("race","conpress")])
+
+race16 %>%
+  dplyr::group_by(race)%>%
+  dplyr::summarize(mean_scores = mean(conpress))%>%
+  ggplot(aes(x = race, y = mean_scores, fill = race,alpha=0.3)) + geom_bar(stat = "identity") + geom_text(aes(label=round(mean_scores,2), size = 10, fontface = "bold", vjust=4))+ labs(x = "Race", y = "Confidence Level")+ggtitle("Confidence in Media by Race") + theme(plot.title=element_text(size=rel(1.1), lineheight=.9,face="italic",colour="black"))+ theme_tufte()+theme(legend.position="none")+ scale_y_continuous(limit = c(0,2), breaks = c(0,1,2), labels = c("Hardly Any", "Only some", "A great deal"))+ scale_x_discrete(limit = c("1", "2", "3"), labels = c("White","Black","Other"))
+
+# Confidence in Media by born
+born16 <- na.omit(yr16[,c("born","conpress")])
+
+born16 %>%
+  dplyr::group_by(born)%>%
+  dplyr::summarize(mean_scores = mean(conpress))%>%
+  ggplot(aes(x = born, y = mean_scores, fill = born,alpha=0.3)) + geom_bar(stat = "identity") + geom_text(aes(label=round(mean_scores,2), size = 10, fontface = "bold", vjust=4))+ labs(x = "Birthplace", y = "Confidence Level")+ggtitle("Confidence in Media by Birthplace") + theme(plot.title=element_text(size=rel(1.1), lineheight=.9,face="italic",colour="black"))+ theme_tufte()+theme(legend.position="none")+ scale_x_discrete(limit = c("1", "2"), labels = c("Born in the U.S","Not Born in the U.S.")) + scale_y_continuous(limit = c(0,2), breaks = c(0,1,2), labels = c("Hardly Any", "Only some", "A great deal"))
+```
+
+
+## Geography
+
+We wanted to see if there were geographic differences and correlations in confidence levels in the press and other variables. For this, we first employed the GSS, which allows for U.S. division-wise mapping of variables.
+
+#### GSS 1972-2016
+
+In the map below, there are few noticeable correlations among confidence levels in the variables projected. The most interesting finding is that the U.S. Northeast (Middle Atlantic and New England) has highest levels of confidence in the press and U.S. South Atlantic has the lowest. These regions are also traditionally regarded as Democrat and Republican stongholds respectively, and thus add value to the above static chart showing that Democrats have the higher degree of confidence in the press and Republicans the lowest.
+
+Mean confidence levels for variables in question are listed in popups on every layer of the map, along with mean age of respondents and percentage of foreign-born respondents for each region on the map. As can be seen, the mean age of respondents is a bit high in GSS for confidence in the press variable, so we turn to National Politics Study 2008 next, which has a more reasonable distribution of age and can be mapped by individual states.
+
+For defining what states comprise the various values of the `region` variable in the GSS (actual states are masked for GSS respondents' privacy), the following U.S. Census map of regions of the United States was used:
+https://www2.census.gov/geo/pdfs/maps-data/maps/reference/us_regdiv.pdf
+
+```{r GSS Spatial, echo=FALSE, message=FALSE, warning=FALSE}
+
+US_map <- tigris::divisions()
+
+# GSS summary by region
+gss_by_reg <- gss_16 %>% dplyr::group_by(region) %>%
+  dplyr::summarize(General = mean(trust, na.rm = TRUE),
+            Press = mean(conpress, na.rm = TRUE), 
+            TV = mean(contv, na.rm = TRUE),
+            Finance = mean(confinan, na.rm = TRUE),
+            Business = mean(conbus, na.rm = TRUE),
+            Religion = mean(conclerg, na.rm = TRUE),
+            Education = mean(coneduc, na.rm = TRUE),
+            Exec_fed_gov = mean(confed, na.rm = TRUE),
+            Unions = mean(conlabor, na.rm = TRUE),
+            Medicine = mean(conmedic, na.rm = TRUE),
+            Supreme_court = mean(conjudge, na.rm = TRUE),
+            Science_comm = mean(consci, na.rm = TRUE),
+            Congress = mean(conlegis, na.rm = TRUE),
+            Military = mean(conarmy, na.rm = TRUE),
+            Age = mean(age, na.rm = TRUE),
+            Foreign = mean(born - 1, na.rm = TRUE) * 100)
+gss_by_reg <- data.frame(sapply(gss_by_reg, function(x) as.numeric(as.character(x))))
+gss_by_reg$region <- as.character(gss_by_reg$region)
+
+US_map@data <- US_map@data %>%
+  left_join(gss_by_reg, by = c("DIVISIONCE" = "region"))
+
+if (!require("leaflet")) {
+ install.packages("leaflet", dependencies = TRUE)
+  library(leaflet)}
+if (!require("RColorBrewer")) {
+ install.packages("RColorBrewer", dependencies = TRUE)
+  library(RColorBrewer)}
+
+summ = paste("Region:", US_map$NAME,"<br/>",
+             "Confidence in Press:", round(as.numeric(US_map$Press), 2),"<br/>",
+             "Confidence in TV:", round(as.numeric(US_map$TV), 2),"<br/>",
+             "Confidence in Congress:", round(as.numeric(US_map$Congress), 2),"<br/>",
+             "Confidence in Supreme Court:", round(as.numeric(US_map$Supreme_court), 2),"<br/>",
+             "Confidence in Military:", round(as.numeric(US_map$Military), 2),"<br/>",
+             "Confidence in Organized Labor:", round(as.numeric(US_map$Unions), 2),"<br/>",
+             "Mean Age:", round(as.numeric(US_map$Age), 2),"<br/>",
+             "Foreign-born (%pop):", round(as.numeric(US_map$Foreign), 2))
+
+# US Regional Map of Confidence in Press
+leaflet(US_map) %>% addTiles() %>%
+  addProviderTiles(providers$Stamen.Toner, group = "Toner") %>%
+  setView(lat=38.0000, lng=-97.0000, zoom = 4) %>%
+  addLegend("bottomright", colors = brewer.pal(4, "RdYlGn"),
+            labels = c("Lowest", "Low", "Medium", "High"),
+            title = "Level of Confidence<br/>(use layers to change variables)",
+            opacity = 0.5) %>%
+  addPolygons(fillColor = ~colorNumeric("RdYlGn", Press)(Press), stroke = FALSE,
+              fillOpacity = 0.4, smoothFactor = 0.5,
+              highlight = highlightOptions(
+                weight = 5, color = "white",
+                fillOpacity = 0.7,
+                bringToFront = TRUE),
+              popup = summ,
+              group = "Confidence in the Press") %>%
+  addPolygons(fillColor = ~colorNumeric("RdYlGn", Congress)(Congress), stroke = FALSE,
+              fillOpacity = 0.4, smoothFactor = 0.5,
+              highlight = highlightOptions(
+                weight = 5, color = "white",
+                fillOpacity = 0.7,
+                bringToFront = TRUE),
+              popup = summ,
+              group = "Confidence in the Congress") %>%
+  addPolygons(fillColor = ~colorNumeric("RdYlGn", Supreme_court)(Supreme_court), stroke = FALSE,
+              fillOpacity = 0.4, smoothFactor = 0.5,
+              highlight = highlightOptions(
+                weight = 5, color = "white",
+                fillOpacity = 0.7,
+                bringToFront = TRUE),
+              popup = summ,
+              group = "Confidence in Supreme Court") %>%
+  addPolygons(fillColor = ~colorNumeric("RdYlGn", Military)(Military), stroke = FALSE,
+              fillOpacity = 0.4, smoothFactor = 0.5,
+              highlight = highlightOptions(
+                weight = 5, color = "white",
+                fillOpacity = 0.7,
+                bringToFront = TRUE),
+              popup = summ,
+              group = "Confidence in Military") %>%
+  addPolygons(fillColor = ~colorNumeric("RdYlGn", Unions)(Unions), stroke = FALSE,
+              fillOpacity = 0.4, smoothFactor = 0.5,
+              highlight = highlightOptions(
+                weight = 5, color = "white",
+                fillOpacity = 0.7,
+                bringToFront = TRUE),
+              popup = summ,
+              group = "Confidence in Organized Labor") %>%
+  addLayersControl(
+    baseGroups = c("Confidence in the Press", "Confidence in the Congress",
+                   "Confidence in Supreme Court", "Confidence in Military",
+                   "Confidence in Organized Labor"),
+    options = layersControlOptions(collapsed = TRUE))
+
+```
+
+
+#### NPS 2008
+
+In order to dig in deeper into spatial differences among states, we used the NPS 2008 survey to create the map below. It shows the differences in Trust in the Media levels among individual states in 2008 (states with no data appear grey). An overlay highlights states that tend to trust government and overlap quite well with the states that tend to also have high levels of trust in the media, with the exceptions of West Virginia and Massachussetts. Popups show average trust in the media and in the government by state.
+
+```{r NPS Spatial, echo=FALSE, message=FALSE, warning=FALSE}
+# Import data
+nps08 <- read.csv("Data/nps2008.csv", header=T, na.strings=c("","NA"))
+nps08 <- nps08[, c("R_STATE", "QB2_A","QB2_B","QB2_C","QB2_D")] # subset 
+nps08 <- na.omit(nps08)
+
+nps08_summ <- nps08 %>% group_by(R_STATE) %>% 
+  summarise(Trust_Media = round(mean(QB2_B), digits = 2), 
+            Trust_Government = round(mean(QB2_A), digits =2), 
+            Trust_Police = round(mean(QB2_C),digits =2), 
+            Trust_LegalSystem = round(mean(QB2_D),digits =2), 
+            Overall_Trust = round((sum(mean(QB2_B) + mean(QB2_A) + mean(QB2_C) + 
+                                         mean(QB2_D))/4),digits=2))
+
+# State-wise map of trust in media
+US_nps_map <- tigris::states()
+
+US_nps_map@data <- US_nps_map@data %>% 
+  left_join(nps08_summ, by = c(STUSPS = "R_STATE"))
+
+leaflet(US_nps_map) %>% 
+  setView(lat=37.8, lng=-96, zoom=4) %>%
+  addProviderTiles(providers$Stamen.Toner, group = "Toner")  %>%
+  addPolygons(group = "Trust Media",
+      stroke = FALSE, fillOpacity = 0.4, smoothFactor = 0.5,
+      color = ~colorQuantile("RdYlGn", Trust_Media)(Trust_Media),
+      highlight = highlightOptions(
+                weight = 5, color = "white",
+                fillOpacity = 0.7,
+                bringToFront = TRUE),
+      popup = paste("State:", US_nps_map$STUSPS, "<br/>",
+                    "Trust Media:", round(US_nps_map$Trust_Media, 2), "<br/>",
+                    "Trust Government:", round(US_nps_map$Trust_Government, 2))) %>%
+  addPolygons(group = "Tend to Trust Government", data = subset(US_nps_map, Trust_Government > 2.7),
+                opacity = 1.0, stroke = TRUE, color = "black", fill = F, weight = 2) %>%
+  addLayersControl(
+    baseGroups = "Trust Media",
+    overlayGroups = "Tend to Trust Government",
+    options = layersControlOptions(collapsed = TRUE)) %>%
+  addLegend("bottomright", colors = brewer.pal(4, "RdYlGn"),
+            labels = c("Lowest", "Low", "Medium", "High"),
+            title = "Trust in Media",
+            opacity = 0.5)
+```
+
+Finally, we provide an additional map of distribution of confidence in the press in the world, created from the World Values Survey 2010-2014. We also provide a layer on educational attainment, which seems to slightly correlate with the confidence in the press levels.
+
+#### World Values Survey 2010-2014
+
+```{r WVS Spatial, echo=FALSE, message=FALSE, warning=FALSE}
+if (!require("plyr")) {
+ install.packages("plyr", dependencies = TRUE)
+  library(plyr)}
+
+# Import and format data
+load("Data/WV6_Data_R_v_2016_01_01.rdata")
+
+list_r <- c(
+"8##Albania
+12##Algeria
+16##American Samoa
+20##Andorra
+24##Angola
+28##Antigua
+31##Azerbaijan
+32##Argentina
+36##Australia
+40##Austria
+48##Bahrain
+50##Bangladesh
+51##Armenia
+52##Barbados
+56##Belgium
+60##Bermuda
+64##Bhutan
+68##Bolivia
+70##Bosnia
+72##Botswana
+76##Brazil
+84##Belize
+100##Bulgaria
+104##Myanmar
+108##Burundi
+112##Belarus
+116##Cambodia
+120##Cameroon
+124##Canada
+144##Sri Lanka
+148##Chad
+152##Chile
+156##China
+158##Taiwan
+170##Colombia
+180##D.R. Congo
+184##Cook Islands
+188##Costa Rica
+191##Croatia
+192##Cuba
+196##Cyprus (G)
+197##Cyprus (T)
+203##Czech Rep.
+208##Denmark
+214##Dominican Rep.
+218##Ecuador
+222##El Salvador
+226##Eq.Guinea
+231##Ethiopia
+232##Eritrea
+233##Estonia
+246##Finland
+250##France
+268##Georgia
+270##Gambia
+275##Palestine
+276##Germany
+288##Ghana
+292##Gibraltar
+300##Greece
+320##Guatemala
+324##Guinea
+328##Guyana
+332##Haiti
+340##Honduras
+344##Hong Kong
+348##Hungary
+352##Iceland
+356##India
+360##Indonesia
+364##Iran
+368##Iraq
+372##Ireland
+376##Israel
+380##Italy
+384##Côte dIvoire
+388##Jamaica
+392##Japan
+398##Kazakhstan
+400##Jordan
+404##Kenya
+408##North Korea
+410##South Korea
+414##Kuwait
+417##Kyrgyzstan
+418##Laos
+422##Lebanon
+426##Lesotho
+428##Latvia
+430##Liberia
+434##Libya
+438##Liechtenstein
+440##Lithuania
+442##Luxembourg
+450##Madagascar
+454##Malawi
+458##Malaysia
+466##Mali
+470##Malta
+474##Martinique
+478##Mauritania
+480##Mauritius
+484##Mexico
+492##Monaco
+496##Mongolia
+498##Moldova
+504##Morocco
+508##Mozambique
+512##Oman
+516##Namibia
+524##Nepal
+528##Netherlands
+554##New Zealand
+558##Nicaragua
+562##Niger
+566##Nigeria
+578##Norway
+586##Pakistan
+591##Panama
+598##Papua New Guinea
+600##Paraguay
+604##Peru
+608##Philippines
+616##Poland
+620##Portugal
+624##Guinea-Bissau
+626##Timor-Leste
+630##Puerto Rico
+634##Qatar
+642##Romania
+643##Russia
+646##Rwanda
+682##Saudi Arabia
+686##Senegal
+690##Seychelles
+694##Sierra Leone
+702##Singapore
+703##Slovakia
+704##Viet Nam
+705##Slovenia
+706##Somalia
+710##South Africa
+716##Zimbabwe
+724##Spain
+736##Sudan
+740##Suriname
+752##Sweden
+756##Switzerland
+760##Syria
+762##Tajikistan
+764##Thailand
+768##Togo
+780##Trinidad and Tobago
+784##United Arab Emirates
+788##Tunisia
+792##Turkey
+795##Turkmenistan
+800##Uganda
+804##Ukraine
+807##Macedonia
+818##Egypt
+826##Great Britain
+834##Tanzania
+840##United States
+850##U.S. Virgin Islands
+854##Burkina Faso
+858##Uruguay
+860##Uzbekistan
+862##Venezuela
+887##Yemen
+891##Serbia and Montenegro
+894##Zambia
+900##West Germany
+901##East Germany
+902##Tambov
+903##Moscow
+904##Basque Country
+906##Andalusia
+907##Galicia
+909##North Ireland
+910##Valencia
+911##Serbia
+912##Montenegro
+913##Srpska Republic
+914##Bosnian Federation
+915##Kosovo
+")
+
+list <- gsub( "##", ",", list_r)
+list <- gsub( "\n", ";", list)
+list <- as.data.frame(list)
+list <- unlist(strsplit(as.character(list$list),split = ";"))
+list <- as.data.frame(list)
+list$V2 <- list$list
+list <- str_split(list$V2, ",")
+list <- as.data.frame(list)
+list <- t(list)
+list <- as.data.frame(list)
+list$Country <- list$V2
+list$V2 <- list$V1
+WV6 <- merge(WV6_Data_R, list, by.x="V2", by.y="V2")
+WV6$Year <- WV6$V262
+WV6$Conf <- WV6$V110
+
+# Subset and compute means
+WV6 <- subset(WV6, WV6$Conf > 0)
+mean_w <- aggregate(Conf ~ Year, data = WV6, FUN = function (x) mean(x))
+mean_d <- aggregate(Conf ~ Country + Year, data = WV6, FUN = function(x) mean(x))
+
+# Explanatory: Plot average press confindence
+# p1 <- ggplot(data = mean_w, aes(x = Conf, y = Year, col = Year)) + geom_point() + labs(title = "Confidence in Press - World Average", x = "         ") + scale_y_continuous(trans = "reverse")
+# p1 <- p1 + scale_x_continuous(limits = c(1, 4), breaks = c(1, 2, 3, 4), label = c("1<br>A great deal", "2<br>Quite a lot", "3<br>Not very much", "4<br>None at all"))
+# p1 <- ggplotly(p1)
+# p1 
+
+# p2 <- ggplot(data = mean_d, aes(x = Conf, y = Year, col = Country)) + geom_point() + labs(title = "Confidence in Press", x =  "         ") + scale_y_continuous(trans = "reverse")
+# p2 <- p2 + scale_x_continuous(limits = c(1, 4), breaks = c(1, 2, 3, 4), label = c("1<br>A great deal", "2<br>Quite a lot", "3<br>Not very much", "4<br>None at all"))
+# p2 <- ggplotly(p2)
+# p2 
+
+# Subset and recode for educational levels
+WV6 <- subset(WV6, WV6$V248 > 0 &  WV6$V248 < 10 )
+WV6$Year <- WV6$V262
+WV6$Conf <- WV6$V110
+WV6$Region <- WV6$V256
+WV6$Edu <- WV6$V248
+WV6$Edu[WV6$V248 == 1] <- "No formal education"
+WV6$Edu[WV6$V248 == 2] <- "Incomplete primary school"
+WV6$Edu[WV6$V248 == 3] <- "Complete primary school"
+WV6$Edu[WV6$V248 == 4] <- "Incomplete secondary school"
+WV6$Edu[WV6$V248 == 5] <- "Complete secondary school"
+WV6$Edu[WV6$V248 == 6] <- "Incomplete secondary school"
+WV6$Edu[WV6$V248 == 7] <- "Complete secondary school"
+WV6$Edu[WV6$V248 == 8] <- "Some university-level education"
+WV6$Edu[WV6$V248 == 9] <- "University - level education"
+WV6$Edu <- as.factor(WV6$Edu)
+WV6$EduLevel <- WV6$V248
+
+WV6$Conf_text <- WV6$Conf
+WV6$Conf_text[WV6$Conf == 1] <- "A great deal"
+WV6$Conf_text[WV6$Conf == 2] <- "Quite a lot"
+WV6$Conf_text[WV6$Conf == 3] <- "Not very much"
+WV6$Conf_text[WV6$Conf == 4] <- "None at all"
+WV6$Conf_text <- as.factor(WV6$Conf_text)
+
+mean_conf <- aggregate(Conf ~ Country, data = WV6, FUN = function(x) mean(x))
+mean_edu <- aggregate(EduLevel ~ Country, data = WV6, FUN = function(x) mean(x))
+
+edu1 <- WV6 %>%
+   group_by(Country) %>%
+   summarize(No.Edu = mean(V248 == 1))
+edu2 <- WV6 %>%
+   group_by(Country) %>%
+   summarize(Primary = mean(V248 == 2 | V248 == 3))
+edu3 <- WV6 %>%
+   group_by(Country) %>%
+   summarize(Secondary = mean(V248 == 4 | V248 == 5 |V248 == 6|V248 == 7))
+edu4 <- WV6 %>%
+   group_by(Country) %>%
+   summarize(University = mean(V248 == 8 | V248 == 9))
+edu1$Country <- rownames(edu1)
+edu2$Country <- rownames(edu2)
+edu3$Country <- rownames(edu3)
+edu4$Country <- rownames(edu4)
+Countrynames <- unique(WV6$Country)
+Countrynames <- data.frame(Countrynames)
+Countrynames$Country <-rownames(Countrynames)
+# Countrynames
+
+Edu <- join_all(list(edu1, edu2, edu3, edu4, Countrynames), by = 'Country', type = 'full')
+Edu$Country <- Edu$Countrynames
+
+mean_dt <- join(mean_conf, mean_edu,
+     type = "inner")
+mean_dt <- join(mean_dt, Edu, type = 'full')
+percent <- function(x, digits = 2, format = "f", ...) 
+  {
+  paste0(formatC(100 * x, format = format, digits = digits, ...), "%")
+}
+mean_dt$No.Edu <- percent(mean_dt$No.Edu)
+mean_dt$Primary <- percent(mean_dt$Primary)
+mean_dt$Secondary <- percent(mean_dt$Secondary)
+mean_dt$University <- percent(mean_dt$University)
+
+# Explanatory data table
+# WV6_dt <- datatable(mean_dt[c("Country","EduLevel","Conf","No.Edu","Primary","Secondary","University")])
+# WV6_dt
+
+# Get data for Leaflet
+download.file(file.path('http://www.naturalearthdata.com/http/',
+                        'www.naturalearthdata.com/download/50m/cultural',
+                        'ne_50m_admin_0_countries.zip'), 
+              f <- tempfile())
+unzip(f, exdir=tempdir())
+world <- readOGR(tempdir(), 'ne_50m_admin_0_countries', encoding='UTF-8')
+
+world_dat <- merge(world, mean_dt, by.x="name_long", by.y="Country")
+
+# Plot leaflet
+leaflet(world_dat) %>% 
+  setView(lat=10, lng=0 , zoom=2) %>% 
+  addProviderTiles(providers$Stamen.Toner, group = "Toner")  %>%
+  addPolygons(group="Confidence Level",
+    stroke = FALSE, fillOpacity = 0.5, smoothFactor = 0.5, 
+    color = ~colorQuantile("RdYlGn", Conf)(Conf),
+    popup = paste("Country:",world_dat$name_long,"<br/>",
+                  "Confidence in Press:", round(world_dat$Conf,1),"<br/>",
+                  "Average Education Level:",round(world_dat$EduLevel,0))) %>%
+  addPolygons(group="% by Edu Level",
+     stroke = FALSE, color = ~colorQuantile("RdYlGn", EduLevel)(EduLevel), 
+     popup = paste("No Education:",world_dat$No.Edu,"<br/>",
+                   "Primary:",world_dat$Primary,"<br/>",
+                   "Secondary:",world_dat$Secondary,"<br/>",
+                   "University:",world_dat$University)) %>%
+  addLayersControl(
+    baseGroups = c("Confidence Level","% by Edu Level"),
+    options = layersControlOptions(collapsed = TRUE)) %>% 
+  addLegend("bottomright", 
+    pal = colorNumeric("RdYlGn", world_dat$conf), values = ~Conf,
+    title = "Confidence in Press <br> 
+    1 = A great deal<br>
+    2 = Quite a lot<br>
+    3 = Not very much<br>
+    4 = None at all", opacity = 0.5)
+```
+
