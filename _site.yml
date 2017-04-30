@@ -1,2 +1,6 @@
-theme: jekyll-theme-cayman
-encoding: UTF-8
+name: "my-website"
+navbar:
+  title: "My Website"
+  left:
+    - text: "Home"
+      href: Team_L_Final_Project.html
